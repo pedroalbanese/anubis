@@ -1,3 +1,3 @@
-module github.com/dgryski/go-anubis
+module github.com/pedroalbanese/go-anubis
 
 go 1.17
