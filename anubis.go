@@ -422,7 +422,7 @@ const (
 	_MAX_ROUNDS   = (8 + _MAX_N)
 	_MIN_KEYSIZEB = (4 * _MIN_N)
 	_MAX_KEYSIZEB = (4 * _MAX_N)
-	_KEYSIZEB     = 16
+	_KEYSIZEB     = 32
 	_BLOCKSIZE    = 128
 	_BLOCKSIZEB   = (_BLOCKSIZE / 8)
 )
