@@ -1,5 +1,7 @@
 // Package anubis implements the tweaked Anubis block cipher
-package anubis
+package main
+
+import "crypto/cipher"
 
 var (
 	_T0 = [...]uint32{
@@ -434,8 +436,7 @@ type Cipher struct {
 	roundKeyDec [_MAX_ROUNDS + 1][4]uint32
 }
 
-func New(key []byte) *Cipher {
-
+func New(key []byte) (cipher.Block, error) {
 	var cipher Cipher
 
 	var kappa [_MAX_N]uint32
@@ -546,7 +547,7 @@ func New(key []byte) *Cipher {
 		}
 	}
 
-	return &cipher
+	return &cipher, nil
 }
 
 func crypt(plaintext []byte, ciphertext []byte, roundKey [_MAX_ROUNDS + 1][4]uint32, R int) {
