@@ -550,6 +550,120 @@ func New(key []byte) (cipher.Block, error) {
 	return &cipher, nil
 }
 
+func NewWithKeySize(key []byte, keySizeBits int) (cipher.Block, error) {
+	var cipher Cipher
+
+	var kappa [_MAX_N]uint32
+	var inter [_MAX_N]uint32
+
+	cipher.keyBits = keySizeBits*8
+
+	// determine the N length parameter:
+	// (N.B. it is assumed that the key length is valid!)
+	var N = cipher.keyBits >> 5
+
+	// determine number of rounds from key size:
+	var R = 8 + N
+	cipher.r = R
+
+	// map cipher key to initial key state (mu):
+	for i, pos := 0, 0; i < N; i++ {
+		kappa[i] =
+			(uint32(key[pos]) << 24) ^
+				(uint32(key[pos+1]) << 16) ^
+				(uint32(key[pos+2]) << 8) ^
+				uint32(key[pos+3])
+		pos += 4
+	}
+
+	//
+	// generate R + 1 round keys:
+	//
+	for r := 0; r <= R; r++ {
+		var K0, K1, K2, K3 uint32
+		//
+		// generate r-th round key K^r:
+		///
+		K0 = _T4[(kappa[N-1] >> 24)]
+		K1 = _T4[(kappa[N-1]>>16)&0xff]
+		K2 = _T4[(kappa[N-1]>>8)&0xff]
+		K3 = _T4[(kappa[N-1])&0xff]
+		for i := N - 2; i >= 0; i-- {
+			K0 = _T4[(kappa[i]>>24)] ^
+				(_T5[(K0>>24)] & 0xff000000) ^
+				(_T5[(K0>>16)&0xff] & 0x00ff0000) ^
+				(_T5[(K0>>8)&0xff] & 0x0000ff00) ^
+				(_T5[(K0)&0xff] & 0x000000ff)
+			K1 = _T4[(kappa[i]>>16)&0xff] ^
+				(_T5[(K1>>24)] & 0xff000000) ^
+				(_T5[(K1>>16)&0xff] & 0x00ff0000) ^
+				(_T5[(K1>>8)&0xff] & 0x0000ff00) ^
+				(_T5[(K1)&0xff] & 0x000000ff)
+			K2 = _T4[(kappa[i]>>8)&0xff] ^
+				(_T5[(K2>>24)] & 0xff000000) ^
+				(_T5[(K2>>16)&0xff] & 0x00ff0000) ^
+				(_T5[(K2>>8)&0xff] & 0x0000ff00) ^
+				(_T5[(K2)&0xff] & 0x000000ff)
+			K3 = _T4[(kappa[i])&0xff] ^
+				(_T5[(K3>>24)] & 0xff000000) ^
+				(_T5[(K3>>16)&0xff] & 0x00ff0000) ^
+				(_T5[(K3>>8)&0xff] & 0x0000ff00) ^
+				(_T5[(K3)&0xff] & 0x000000ff)
+		}
+
+		cipher.roundKeyEnc[r][0] = K0
+		cipher.roundKeyEnc[r][1] = K1
+		cipher.roundKeyEnc[r][2] = K2
+		cipher.roundKeyEnc[r][3] = K3
+
+		// compute kappa^{r+1} from kappa^r:
+		if r == R {
+			break
+		}
+		for i := 0; i < N; i++ {
+			j := i
+			inter[i] = _T0[(kappa[j] >> 24)]
+			j--
+			if j < 0 {
+				j = N - 1
+			}
+			inter[i] ^= _T1[(kappa[j]>>16)&0xff]
+			j--
+			if j < 0 {
+				j = N - 1
+			}
+			inter[i] ^= _T2[(kappa[j]>>8)&0xff]
+			j--
+			if j < 0 {
+				j = N - 1
+			}
+			inter[i] ^= _T3[(kappa[j])&0xff]
+		}
+		kappa[0] = inter[0] ^ rc[r]
+		for i := 1; i < N; i++ {
+			kappa[i] = inter[i]
+		}
+	}
+
+	// generate inverse key schedule: K'^0 = K^R, K'^R = K^0, K'^r = theta(K^{R-r}):
+	for i := 0; i < 4; i++ {
+		cipher.roundKeyDec[0][i] = cipher.roundKeyEnc[R][i]
+		cipher.roundKeyDec[R][i] = cipher.roundKeyEnc[0][i]
+	}
+	for r := 1; r < R; r++ {
+		for i := 0; i < 4; i++ {
+			v := cipher.roundKeyEnc[R-r][i]
+			cipher.roundKeyDec[r][i] =
+				_T0[_T4[(v>>24)]&0xff] ^
+					_T1[_T4[(v>>16)&0xff]&0xff] ^
+					_T2[_T4[(v>>8)&0xff]&0xff] ^
+					_T3[_T4[(v)&0xff]&0xff]
+		}
+	}
+
+	return &cipher, nil
+}
+
 func crypt(plaintext []byte, ciphertext []byte, roundKey [_MAX_ROUNDS + 1][4]uint32, R int) {
 	var state [4]uint32
 	var inter [4]uint32
