@@ -424,7 +424,7 @@ const (
 	_MAX_ROUNDS   = (8 + _MAX_N)
 	_MIN_KEYSIZEB = (4 * _MIN_N)
 	_MAX_KEYSIZEB = (4 * _MAX_N)
-	_KEYSIZEB     = 16
+//	_KEYSIZEB     = 16
 	_BLOCKSIZE    = 128
 	_BLOCKSIZEB   = (_BLOCKSIZE / 8)
 )
@@ -436,13 +436,14 @@ type Cipher struct {
 	roundKeyDec [_MAX_ROUNDS + 1][4]uint32
 }
 
+//func New(key []byte, keySizeBits int) (cipher.Block, error) {
 func New(key []byte) (cipher.Block, error) {
 	var cipher Cipher
 
 	var kappa [_MAX_N]uint32
 	var inter [_MAX_N]uint32
 
-	cipher.keyBits = _KEYSIZEB * 8
+	cipher.keyBits = keySizeBits * 8
 
 	// determine the N length parameter:
 	// (N.B. it is assumed that the key length is valid!)
