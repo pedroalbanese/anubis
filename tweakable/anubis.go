@@ -1,5 +1,5 @@
 // Package anubis implements the tweaked Anubis block cipher
-package anubis
+package tweakable
 
 import "crypto/cipher"
 
