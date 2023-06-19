@@ -436,8 +436,8 @@ type Cipher struct {
 	roundKeyDec [_MAX_ROUNDS + 1][4]uint32
 }
 
-//func New(key []byte, keySizeBits int) (cipher.Block, error) {
-func New(key []byte) (cipher.Block, error) {
+//func New(key []byte) (cipher.Block, error) {
+func New(key []byte, keySizeBits int) (cipher.Block, error) {
 	var cipher Cipher
 
 	var kappa [_MAX_N]uint32
